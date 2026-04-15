@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --subtle-text-color: #6b7280;
+      --primary-color: #4f46e5;
+      --primary-hover-color: #4338ca;
+      --border-color: #e5e7eb;
+      --input-bg-color: #f9fafb;
+      --danger-color: #dc2626;
+      --danger-hover-color: #b91c1c;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #111827;
+        --text-color: #f9fafb;
+        --subtle-text-color: #9ca3af;
+        --primary-color: #6366f1;
+        --primary-hover-color: #4f46e5;
+        --border-color: #374151;
+        --input-bg-color: #1f2937;
+        --danger-color: #f87171;
+        --danger-hover-color: #ef4444;
+      }
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      width: 350px;
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    .container {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-flex {
+      gap: 10px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .toggle-switch input { display: none; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 22px;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .slider { background-color: #4b5563; }
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary-color);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    #newSelector {
+      flex-grow: 1;
+      min-width: 0; /* Allow input to shrink */
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg-color);
+      color: var(--text-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #newSelector::placeholder {
+      color: var(--subtle-text-color);
+    }
+
+    #newSelector:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+    }
+
+    #addBtn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0 16px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      flex-shrink: 0; /* Prevent button from shrinking */
+    }
+
+    #addBtn:hover {
+      background-color: var(--primary-hover-color);
+    }
+
+    .find-btn {
+      background-color: transparent;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 6px;
+      padding: 0 16px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0; /* Prevent button from shrinking */
+    }
+
+    .find-btn:hover {
+      background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    }
+    
+    #selectorList {
+      list-style: none;
+      padding: 2px 0 0 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #selectorList li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--input-bg-color);
+      padding: 8px 12px;
+      border-radius: 8px; /* Increased border-radius */
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--subtle-text-color);
+      word-break: break-all;
+      transition: all 0.2s ease-in-out;
+      position: relative; /* Needed for the pseudo-element */
+      overflow: hidden; /* Hide overflowing pseudo-element */
+    }
+
+    #selectorList li::before {
+      content: '';
+      position: absolute;
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+      transform: translate(-50%, -50%);
+      width: 0;
+      height: 0;
+      background: radial-gradient(circle closest-side, color-mix(in srgb, var(--primary-color) 25%, transparent), transparent);
+      border-radius: 50%;
+      transition: width 0.3s, height 0.3s;
+    }
+
+    #selectorList li:hover::before {
+      width: 200px;
+      height: 200px;
+    }
+
+    #selectorList li:hover {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 15px color-mix(in srgb, var(--primary-color) 10%, transparent);
+    }
+
+    .delete-btn {
+      background: transparent;
+      color: var(--subtle-text-color);
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s, background-color 0.2s;
+      position: relative; /* Ensure button is on top */
+      z-index: 2; /* Place it above the hover effect */
+    }
+
+    .delete-btn:hover {
+      color: var(--danger-color);
+      background-color: color-mix(in srgb, var(--danger-color) 15%, transparent);
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 0 0 8px;
+      color: var(--subtle-text-color);
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+      height: 22px;
+    }
+
+    .settings-btn:hover svg circle {
+      stroke: var(--primary-color);
+    }
+
+    .settings-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 38px;
+      background: var(--bg-color);
+      border: 1.5px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 6px 32px 0 rgba(80, 80, 120, 0.18), 0 1.5px 6px 0 rgba(80, 80, 120, 0.10);
+      padding: 24px 30px 24px 24px;
+      z-index: 20;
+      min-width: 270px;
+      min-height: 80px;
+      animation: fadeIn 0.18s ease;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 6px;
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 4px 0 4px 0;
+      border-radius: 2px;
+      width: 100%;
+    }
+
+    .settings-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 2px;
+      letter-spacing: 0.01em;
+    }
+
+    .settings-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-color);
+      cursor: pointer;
+      user-select: none;
+      padding: 6px 0;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+
+    .settings-label:hover {
+      background: color-mix(in srgb, var(--primary-color) 7%, transparent);
+    }
+
+    .settings-label input[type="checkbox"] {
+      accent-color: var(--primary-color);
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header header-flex">
+      <h1>Click Assistant</h1>
+      <div class="header-controls">
+        <label class="toggle-switch">
+          <input type="checkbox" id="enableToggle">
+          <span class="slider"></span>
+        </label>
+        <button id="settingsBtn" class="settings-btn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="var(--border-color)" stroke-width="2" fill="var(--input-bg-color)"/>
+            <path d="M10 6.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7z" stroke="var(--primary-color)" stroke-width="1.5" fill="none"/>
+            <circle cx="10" cy="10" r="1.2" fill="var(--primary-color)"/>
+          </svg>
+        </button>
+        <div id="settingsMenu" class="settings-menu settings-reel">
+          <div class="settings-title">Settings</div>
+          <label class="settings-label">
+            <input type="checkbox" id="autoReloadToggle">
+            <span>Reload page after adding</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="input-group">
+        <input type="text" id="newSelector" placeholder="Add a CSS selector or text...">
+        <button id="findBtn" class="find-btn">Find</button>
+        <button id="addBtn">Add</button>
+      </div>
+    </div>
+
+    <ul id="selectorList"></ul>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
