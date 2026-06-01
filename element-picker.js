@@ -47,7 +47,9 @@
   const buildCssPath = (el) => {
     const parts = [];
     let cur = el;
-    while (cur && cur !== document.body) {
+    // Stop at <html>, not <body> — including "body" in the path avoids returning a bare
+    // tag name like "button" that would match the first button anywhere on the page.
+    while (cur && cur.tagName !== 'HTML') {
       let part = cur.tagName.toLowerCase();
       if (cur.id) {
         parts.unshift(`#${CSS.escape(cur.id)}`);
@@ -67,7 +69,9 @@
 
   const getSimpleSelector = (el) => {
     // 1. ALWAYS prioritize descriptive text content.
-    const text = (el.innerText || el.textContent || '').trim();
+    // Use only innerText (rendered text), never textContent — textContent includes hidden
+    // nodes like SVG <title> elements and aria-hidden spans, which content.js can't match.
+    const text = (el.innerText || '').trim();
     if (text && text.length > 2 && text.length < 50 && !text.includes('\n')) {
       return text;
     }

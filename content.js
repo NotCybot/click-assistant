@@ -37,31 +37,40 @@ chrome.storage.local.get(['isEnabled', 'selectors'], (data) => {
     sessionStorage.setItem(sessionKey, '1');
 
     el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    // Focus required by some form libraries before a click is meaningful.
+    el.focus({ preventScroll: true });
+
     const rect = el.getBoundingClientRect();
     const cx = Math.round(rect.left + rect.width / 2);
     const cy = Math.round(rect.top + rect.height / 2);
+    const init = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, screenX: cx, screenY: cy };
+    const ptrInit = { ...init, isPrimary: true, pointerId: 1, pointerType: 'mouse' };
 
-    // mousedown/mouseup for frameworks that trigger on those events.
-    for (const type of ['mousedown', 'mouseup']) {
-      el.dispatchEvent(new MouseEvent(type, {
-        bubbles: true, cancelable: true, view: window,
-        clientX: cx, clientY: cy, screenX: cx, screenY: cy,
-      }));
-    }
-    // Buttons with inline onclick: call the handler directly rather than dispatching
-    // a bubbling click. This fires the action without triggering delegated page handlers
-    // (e.g. Bootstrap's cleanup code) that can throw DOM errors during navigation.
-    // Fall back to el.click() for framework buttons that use event delegation (React etc.).
-    if (typeof el.onclick === 'function') {
-      el.onclick.call(el, new MouseEvent('click', { bubbles: false, cancelable: true, view: window }));
-    } else {
-      el.click();
-    }
+    // Full pointer + mouse event sequence so frameworks that listen on pointer events
+    // (React 17+, many UI libraries) respond correctly alongside mouse-event listeners.
+    el.dispatchEvent(new PointerEvent('pointerdown', ptrInit));
+    el.dispatchEvent(new MouseEvent('mousedown', init));
+    el.dispatchEvent(new PointerEvent('pointerup', ptrInit));
+    el.dispatchEvent(new MouseEvent('mouseup', init));
+
+    // el.click() dispatches a real bubbling click event — triggering addEventListener
+    // handlers, event delegation, form submission, and link navigation.
+    // Calling el.onclick() directly (the old approach) bypassed all addEventListener
+    // handlers and delegation, breaking buttons where the real action handler
+    // was registered via addEventListener rather than the onclick property.
+    el.click();
   }
 
+  // Matches strings that have real CSS selector syntax.
+  // Plain text labels like "Sign In", "a", or "button" are intentionally excluded so they
+  // never reach document.querySelector — "a" and "button" are valid CSS that would silently
+  // match the first anchor or button on the page rather than the intended element.
+  const CSS_SELECTOR_RE = /^[#.\[:]|[>\+~]/;
+
   function findAndClickButton() {
-    // 1. Try each entry as a CSS selector.
+    // 1. Try each entry as a CSS selector — only if it looks like one.
     for (const rule of targetSelectors) {
+      if (!CSS_SELECTOR_RE.test(rule)) continue;
       try {
         const el = document.querySelector(rule);
         if (el && isVisible(el)) {
@@ -107,8 +116,16 @@ chrome.storage.local.get(['isEnabled', 'selectors'], (data) => {
 
   if (findAndClickButton()) return;
 
+  // Debounce MutationObserver callbacks — SPAs can fire thousands of mutations per
+  // second during a render cycle, and triggering a full querySelectorAll scan on each
+  // one causes measurable page slowdown. 100 ms is short enough to react quickly to
+  // content appearing, long enough to batch an entire render burst into one check.
+  let mutationTimer = null;
   const observer = new MutationObserver(() => {
-    if (findAndClickButton()) observer.disconnect();
+    clearTimeout(mutationTimer);
+    mutationTimer = setTimeout(() => {
+      if (findAndClickButton()) observer.disconnect();
+    }, 100);
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
