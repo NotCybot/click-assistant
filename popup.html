@@ -221,6 +221,34 @@
       box-shadow: 0 0 15px color-mix(in srgb, var(--primary-color) 10%, transparent);
     }
 
+    .selector-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .url-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--primary-color);
+      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 6px;
+      position: relative;
+      z-index: 2;
+      max-width: 90px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .delete-btn {
       background: transparent;
       color: var(--subtle-text-color);
