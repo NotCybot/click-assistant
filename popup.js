@@ -107,7 +107,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const text = document.createElement('span');
       text.className = 'selector-text';
-      text.textContent = entry.selector;
+
+      const hasLabel = entry.label && entry.label !== entry.selector;
+      text.textContent = hasLabel ? entry.label : entry.selector;
+
+      if (hasLabel) {
+        const rawSpan = document.createElement('span');
+        rawSpan.className = 'selector-raw';
+        rawSpan.textContent = entry.selector;
+        text.appendChild(rawSpan);
+      }
+
       li.appendChild(text);
 
       if (entry.url) {

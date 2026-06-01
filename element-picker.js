@@ -109,12 +109,25 @@
     e.stopImmediatePropagation();
   };
 
+  // Returns a human-readable description for a picked element so the popup can show
+  // something meaningful even when getSimpleSelector falls back to a CSS path.
+  const getLabel = (el) => {
+    const text = (el.innerText || '').replace(/\s+/g, ' ').trim();
+    if (text) return text.slice(0, 80);
+    const attr = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder');
+    if (attr?.trim()) return attr.trim().slice(0, 80);
+    if (el.tagName === 'INPUT' && el.value) return el.value.trim().slice(0, 80);
+    return (document.title || document.location.hostname).slice(0, 80);
+  };
+
   const selectElement = (e) => {
     e.preventDefault();
     e.stopImmediatePropagation();
 
-    const selector = getSimpleSelector(findInteractive(e.target));
-    chrome.runtime.sendMessage({ type: 'element-selected', selector: selector });
+    const target = findInteractive(e.target);
+    const selector = getSimpleSelector(target);
+    const label = getLabel(target);
+    chrome.runtime.sendMessage({ type: 'element-selected', selector, label });
     cleanup();
   };
 

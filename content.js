@@ -1,3 +1,8 @@
+// Only strings with real CSS syntax are tried via querySelector.
+// Plain text labels like "a" or "button" are valid CSS tag selectors and would silently
+// match unrelated elements, so they skip directly to text matching.
+const CSS_SELECTOR_RE = /^[#.\[:]|[>\+~]/;
+
 chrome.storage.local.get(['isEnabled', 'selectors'], (data) => {
   if (data.isEnabled === false) return;
 
@@ -53,19 +58,10 @@ chrome.storage.local.get(['isEnabled', 'selectors'], (data) => {
     el.dispatchEvent(new PointerEvent('pointerup', ptrInit));
     el.dispatchEvent(new MouseEvent('mouseup', init));
 
-    // el.click() dispatches a real bubbling click event — triggering addEventListener
-    // handlers, event delegation, form submission, and link navigation.
-    // Calling el.onclick() directly (the old approach) bypassed all addEventListener
-    // handlers and delegation, breaking buttons where the real action handler
-    // was registered via addEventListener rather than the onclick property.
+    // el.click() is the only reliable way to trigger all handlers (addEventListener,
+    // event delegation, form submission, link navigation) with a single call.
     el.click();
   }
-
-  // Matches strings that have real CSS selector syntax.
-  // Plain text labels like "Sign In", "a", or "button" are intentionally excluded so they
-  // never reach document.querySelector — "a" and "button" are valid CSS that would silently
-  // match the first anchor or button on the page rather than the intended element.
-  const CSS_SELECTOR_RE = /^[#.\[:]|[>\+~]/;
 
   function findAndClickButton() {
     // 1. Try each entry as a CSS selector — only if it looks like one.

@@ -7,9 +7,11 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         { selector: 'login' }
       ];
       const selectors = normalizeSelectors(data.selectors) || defaultSelectors;
-      const selector = message.selector;
+      const { selector, label } = message;
       const url = sender.tab && sender.tab.url ? new URL(sender.tab.url).origin : undefined;
       const entry = url ? { selector, url } : { selector };
+      // Only persist label when it adds info the raw selector doesn't already convey.
+      if (label && label !== selector) entry.label = label;
 
       if (!selectors.some(s => s.selector === selector && s.url === url)) {
         selectors.push(entry);
