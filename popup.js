@@ -9,48 +9,48 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoReloadToggle = document.getElementById('autoReloadToggle');
 
   const defaultSelectors = [
-    '[data-testid="login-button"]',
-    '[data-cy="login-button"]',
-    'login'
+    { selector: '[data-testid="login-button"]' },
+    { selector: '[data-cy="login-button"]' },
+    { selector: 'login' }
   ];
 
-  // On popup open, check if a selector was just picked and load settings
+  function normalizeSelectors(raw) {
+    if (!raw) return defaultSelectors;
+    return raw.map(s => typeof s === 'string' ? { selector: s } : s);
+  }
+
+  function getHostname(url) {
+    try { return new URL(url).hostname; } catch (e) { return url; }
+  }
+
   chrome.storage.local.get(['pickedSelector', 'isEnabled', 'selectors', 'autoReload'], (data) => {
     if (data.pickedSelector) {
       input.value = data.pickedSelector;
       chrome.storage.local.remove('pickedSelector');
     }
     toggle.checked = data.isEnabled !== false;
-    const selectors = data.selectors || defaultSelectors;
-    renderList(selectors);
+    renderList(normalizeSelectors(data.selectors));
     autoReloadToggle.checked = !!data.autoReload;
   });
 
-  // Save enable toggle state
   toggle.addEventListener('change', () => {
     chrome.storage.local.set({ isEnabled: toggle.checked }, () => {
       if (toggle.checked) {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           const tab = tabs[0];
-          if (tab && tab.id) {
-            chrome.tabs.reload(tab.id);
-          }
+          if (tab && tab.id) chrome.tabs.reload(tab.id);
         });
       }
     });
   });
 
-  // Save autoReload toggle state
   autoReloadToggle.addEventListener('change', () => {
     chrome.storage.local.set({ autoReload: autoReloadToggle.checked });
   });
 
-  // Settings dropdown logic
-  // Ensure settings menu is hidden by default
   settingsMenu.style.display = 'none';
 
   function resizePopupToFit() {
-    // Try to resize the popup window to fit content (works in most browsers)
     if (window.resizeTo) {
       setTimeout(() => {
         window.resizeTo(document.body.offsetWidth + 20, document.body.offsetHeight + 20);
@@ -60,14 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (settingsMenu.style.display === 'flex') {
-      settingsMenu.style.display = 'none';
-    } else {
-      settingsMenu.style.display = 'flex';
-    }
+    settingsMenu.style.display = settingsMenu.style.display === 'flex' ? 'none' : 'flex';
     resizePopupToFit();
   });
-  // Only close settings menu if click is outside
+
   document.addEventListener('click', (e) => {
     if (!settingsMenu.contains(e.target) && e.target !== settingsBtn && settingsMenu.style.display === 'flex') {
       settingsMenu.style.display = 'none';
@@ -75,29 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Add new selector
   const addSelector = () => {
     const value = input.value.trim();
-    if (value) {
-      chrome.storage.local.get(['selectors'], (data) => {
-        const currentSelectors = data.selectors || defaultSelectors;
-        if (!currentSelectors.includes(value)) {
-          const newSelectors = [...currentSelectors, value];
-          chrome.storage.local.set({ selectors: newSelectors }, () => {
-            renderList(newSelectors);
-            input.value = '';
-          });
-        }
-      });
-    }
+    if (!value) return;
+
+    chrome.storage.local.get(['selectors'], (data) => {
+      const current = normalizeSelectors(data.selectors);
+      if (!current.some(s => s.selector === value && !s.url)) {
+        const updated = [...current, { selector: value }];
+        chrome.storage.local.set({ selectors: updated }, () => {
+          renderList(updated);
+          input.value = '';
+        });
+      }
+    });
   };
 
   addBtn.addEventListener('click', addSelector);
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addSelector();
-  });
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addSelector(); });
 
-  // Find button logic
   findBtn.addEventListener('click', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
@@ -108,47 +100,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Render the list in the UI
-  function renderList(selectors) {
+  function renderList(entries) {
     list.innerHTML = '';
-    selectors.forEach(selector => {
+    entries.forEach(entry => {
       const li = document.createElement('li');
+
       const text = document.createElement('span');
-      text.textContent = selector;
+      text.className = 'selector-text';
+      text.textContent = entry.selector;
       li.appendChild(text);
+
+      if (entry.url) {
+        const badge = document.createElement('span');
+        badge.className = 'url-badge';
+        badge.textContent = getHostname(entry.url);
+        li.appendChild(badge);
+      }
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-btn';
       deleteBtn.innerHTML = '&times;';
-      deleteBtn.onclick = () => removeSelector(selector);
+      deleteBtn.onclick = () => removeSelector(entry);
       li.appendChild(deleteBtn);
+
       list.appendChild(li);
     });
     addHoverEffect();
   }
 
-  // Remove a selector
-  function removeSelector(selectorToRemove) {
+  function removeSelector(entry) {
     chrome.storage.local.get(['selectors'], (data) => {
-      const currentSelectors = data.selectors || defaultSelectors;
-      const newSelectors = currentSelectors.filter(s => s !== selectorToRemove);
-      chrome.storage.local.set({ selectors: newSelectors }, () => {
-        renderList(newSelectors);
-      });
+      const current = normalizeSelectors(data.selectors);
+      const updated = current.filter(s => !(s.selector === entry.selector && s.url === entry.url));
+      chrome.storage.local.set({ selectors: updated }, () => renderList(updated));
     });
   }
 
-  // Function to apply the mouse-following hover effect
   function addHoverEffect() {
     document.querySelectorAll('#selectorList li').forEach(item => {
       item.addEventListener('mousemove', e => {
         const rect = item.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        item.style.setProperty('--x', `${x}px`);
-        item.style.setProperty('--y', `${y}px`);
+        item.style.setProperty('--x', `${e.clientX - rect.left}px`);
+        item.style.setProperty('--y', `${e.clientY - rect.top}px`);
       });
     });
   }
 });
-

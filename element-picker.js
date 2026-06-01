@@ -15,16 +15,28 @@
 
   const cleanup = () => {
     document.removeEventListener('mouseover', highlightElement);
+    document.removeEventListener('mousedown', suppressEvent, true);
     document.removeEventListener('click', selectElement, true);
     document.removeEventListener('keydown', handleKeydown);
     overlay.remove();
     window.elementPickerActive = false;
   };
 
+  const INTERACTIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA']);
+
+  const findInteractive = (el) => {
+    let cur = el;
+    while (cur && cur.tagName !== 'BODY') {
+      if (INTERACTIVE.has(cur.tagName) || cur.getAttribute('role') === 'button') return cur;
+      cur = cur.parentElement;
+    }
+    return el;
+  };
+
   const highlightElement = (e) => {
-    const target = e.target;
-    if (target === overlay || target.tagName === 'BODY') return;
-    
+    const raw = e.target;
+    if (raw === overlay || raw.tagName === 'BODY') return;
+    const target = findInteractive(raw);
     const rect = target.getBoundingClientRect();
     overlay.style.width = `${rect.width}px`;
     overlay.style.height = `${rect.height}px`;
@@ -32,15 +44,35 @@
     overlay.style.left = `${rect.left}px`;
   };
 
+  const buildCssPath = (el) => {
+    const parts = [];
+    let cur = el;
+    while (cur && cur !== document.body) {
+      let part = cur.tagName.toLowerCase();
+      if (cur.id) {
+        parts.unshift(`#${CSS.escape(cur.id)}`);
+        break;
+      }
+      const parent = cur.parentElement;
+      if (parent) {
+        const siblings = Array.from(parent.children).filter(c => c.tagName === cur.tagName);
+        if (siblings.length > 1) part += `:nth-of-type(${siblings.indexOf(cur) + 1})`;
+      }
+      parts.unshift(part);
+      cur = cur.parentElement;
+      if (parts.length >= 5) break;
+    }
+    return parts.join(' > ') || el.tagName.toLowerCase();
+  };
+
   const getSimpleSelector = (el) => {
     // 1. ALWAYS prioritize descriptive text content.
     const text = (el.innerText || el.textContent || '').trim();
-    // Use text if it's a reasonable length and doesn't contain newlines.
     if (text && text.length > 2 && text.length < 50 && !text.includes('\n')) {
       return text;
     }
 
-    // 2. Fallback to a unique ID if no good text is found.
+    // 2. Unique ID.
     if (el.id) {
       const idSelector = `#${CSS.escape(el.id)}`;
       if (document.querySelectorAll(idSelector).length === 1) {
@@ -48,8 +80,8 @@
       }
     }
 
-    // 3. Fallback to a unique, simple data-attribute.
-    const uniqueAttrs = ['data-testid', 'data-cy', 'name'];
+    // 3. Unique data-attribute or aria-label/title (covers icon-only buttons).
+    const uniqueAttrs = ['data-testid', 'data-cy', 'name', 'aria-label', 'title', 'data-id', 'data-action'];
     for (const attr of uniqueAttrs) {
       if (el.hasAttribute(attr)) {
         const attrSelector = `[${attr}="${CSS.escape(el.getAttribute(attr))}"]`;
@@ -58,25 +90,30 @@
         }
       }
     }
-    
-    // If no simple, descriptive selector can be found, return null.
-    return null;
+
+    // 4. Input button value text.
+    if (el.tagName === 'INPUT' && el.value) {
+      return el.value.trim();
+    }
+
+    // 5. Fallback: structural CSS path — always produces a usable selector.
+    return buildCssPath(el);
+  };
+
+  const suppressEvent = (e) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
   };
 
   const selectElement = (e) => {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopImmediatePropagation();
 
-    const selector = getSimpleSelector(e.target);
-
-    // Only send a message if we found a good selector.
-    if (selector) {
-      chrome.runtime.sendMessage({ type: 'element-selected', selector: selector });
-    }
-    
+    const selector = getSimpleSelector(findInteractive(e.target));
+    chrome.runtime.sendMessage({ type: 'element-selected', selector: selector });
     cleanup();
   };
-  
+
   const handleKeydown = (e) => {
     if (e.key === 'Escape') {
       cleanup();
@@ -84,6 +121,7 @@
   };
 
   document.addEventListener('mouseover', highlightElement);
+  document.addEventListener('mousedown', suppressEvent, { capture: true });
   document.addEventListener('click', selectElement, { capture: true });
   document.addEventListener('keydown', handleKeydown);
 })();
