@@ -172,30 +172,41 @@
     
     #selectorList {
       list-style: none;
-      padding: 2px 0 0 0;
+      padding: 0;
       margin: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 200px;
-      overflow-y: auto;
+    }
+
+    .empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      color: var(--subtle-text-color);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+      border: 1.5px dashed var(--border-color);
+      border-radius: 8px;
+      list-style: none;
     }
 
     #selectorList li {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      /* flex-start so the delete button stays at the top for two-line items */
+      align-items: flex-start;
       background-color: var(--input-bg-color);
       padding: 8px 12px;
-      border-radius: 8px; /* Increased border-radius */
+      border-radius: 8px;
       border: 1px solid var(--border-color);
       font-size: 13px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: var(--subtle-text-color);
-      word-break: break-all;
       transition: all 0.2s ease-in-out;
-      position: relative; /* Needed for the pseudo-element */
-      overflow: hidden; /* Hide overflowing pseudo-element */
+      position: relative;
+      overflow: hidden;
     }
 
     #selectorList li::before {
@@ -229,6 +240,15 @@
       white-space: nowrap;
       position: relative;
       z-index: 2;
+      /* Body font for human-readable labels; .selector-code overrides for raw CSS */
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-color);
+    }
+
+    /* Applied when a selector is shown directly (no human-readable label) */
+    .selector-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--subtle-text-color);
     }
 
     .selector-raw {
@@ -245,6 +265,7 @@
 
     .url-badge {
       flex-shrink: 0;
+      align-self: flex-start;
       font-size: 10px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: var(--primary-color);
@@ -253,6 +274,7 @@
       border-radius: 4px;
       padding: 1px 5px;
       margin-left: 6px;
+      margin-top: 2px;
       position: relative;
       z-index: 2;
       max-width: 90px;
@@ -262,6 +284,8 @@
     }
 
     .delete-btn {
+      flex-shrink: 0;
+      align-self: flex-start;
       background: transparent;
       color: var(--subtle-text-color);
       border: none;
@@ -269,10 +293,11 @@
       font-size: 16px;
       line-height: 1;
       padding: 4px;
+      margin-top: 1px;
       border-radius: 4px;
       transition: color 0.2s, background-color 0.2s;
-      position: relative; /* Ensure button is on top */
-      z-index: 2; /* Place it above the hover effect */
+      position: relative;
+      z-index: 2;
     }
 
     .delete-btn:hover {
@@ -394,7 +419,9 @@
       </div>
     </div>
 
-    <ul id="selectorList"></ul>
+    <div class="list-wrapper">
+      <ul id="selectorList"></ul>
+    </div>
   </div>
 
   <script src="popup.js"></script>

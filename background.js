@@ -1,12 +1,7 @@
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.type === 'element-selected') {
     chrome.storage.local.get(['selectors', 'autoReload'], (data) => {
-      const defaultSelectors = [
-        { selector: '[data-testid="login-button"]' },
-        { selector: '[data-cy="login-button"]' },
-        { selector: 'login' }
-      ];
-      const selectors = normalizeSelectors(data.selectors) || defaultSelectors;
+      const selectors = normalizeSelectors(data.selectors) || [];
       const { selector, label } = message;
       const url = sender.tab && sender.tab.url ? new URL(sender.tab.url).origin : undefined;
       const entry = url ? { selector, url } : { selector };

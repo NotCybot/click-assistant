@@ -6,11 +6,7 @@ const CSS_SELECTOR_RE = /^[#.\[:]|[>\+~]/;
 chrome.storage.local.get(['isEnabled', 'selectors'], (data) => {
   if (data.isEnabled === false) return;
 
-  const raw = data.selectors || [
-    '[data-testid="login-button"]',
-    '[data-cy="login-button"]',
-    'login'
-  ];
+  const raw = data.selectors || [];
 
   const allEntries = raw.map(s => typeof s === 'string' ? { selector: s } : s);
   const currentOrigin = window.location.origin;
