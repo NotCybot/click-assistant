@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Click Assistant",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Automatically clicks buttons (e.g., login, submit).",
   "permissions": [
     "storage",
@@ -22,16 +22,15 @@
     "default_popup": "popup.html",
     "default_title": "Click Assistant Settings",
     "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "96": "icons/icon-96.png"
+      "32": "icons/32x32.png",
+      "64": "icons/64x64.png",
+      "128": "icons/128x128.png"
     }
   },
   "icons": {
-    "48": "icons/icon-48.png",
-    "96": "icons/icon-96.png",
-    "128": "icons/icon-128.png"
+    "32": "icons/32x32.png",
+    "64": "icons/64x64.png",
+    "128": "icons/128x128.png"
   },
   "content_scripts": [
     {
