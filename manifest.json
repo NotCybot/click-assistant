@@ -1,16 +1,15 @@
 {
   "manifest_version": 2,
   "name": "Click Assistant",
-  "version": "2.0",
+  "version": "0.1.1",
   "description": "Automatically clicks buttons (e.g., login, submit).",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "click-assistant@demo.invalid",
+      "id": "{a593e53e-67d5-4efe-950f-4bed0b6050ef}",
       "data_collection_permissions": {
         "required": ["none"]
       }
@@ -21,10 +20,17 @@
   },
   "browser_action": {
     "default_popup": "popup.html",
-    "default_title": "Click Assistant Settings"
+    "default_title": "Click Assistant Settings",
+    "default_icon": {
+      "32": "icons/32x32.png",
+      "64": "icons/64x64.png",
+      "128": "icons/128x128.png"
+    }
   },
   "icons": {
-    "2048": "pic.png"
+    "32": "icons/32x32.png",
+    "64": "icons/64x64.png",
+    "128": "icons/128x128.png"
   },
   "content_scripts": [
     {

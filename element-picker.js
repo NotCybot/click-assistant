@@ -47,7 +47,9 @@
   const buildCssPath = (el) => {
     const parts = [];
     let cur = el;
-    while (cur && cur !== document.body) {
+    // Stop at <html>, not <body> — including "body" in the path avoids returning a bare
+    // tag name like "button" that would match the first button anywhere on the page.
+    while (cur && cur.tagName !== 'HTML') {
       let part = cur.tagName.toLowerCase();
       if (cur.id) {
         parts.unshift(`#${CSS.escape(cur.id)}`);
@@ -67,7 +69,9 @@
 
   const getSimpleSelector = (el) => {
     // 1. ALWAYS prioritize descriptive text content.
-    const text = (el.innerText || el.textContent || '').trim();
+    // Use only innerText (rendered text), never textContent — textContent includes hidden
+    // nodes like SVG <title> elements and aria-hidden spans, which content.js can't match.
+    const text = (el.innerText || '').trim();
     if (text && text.length > 2 && text.length < 50 && !text.includes('\n')) {
       return text;
     }
@@ -105,12 +109,25 @@
     e.stopImmediatePropagation();
   };
 
+  // Returns a human-readable description for a picked element so the popup can show
+  // something meaningful even when getSimpleSelector falls back to a CSS path.
+  const getLabel = (el) => {
+    const text = (el.innerText || '').replace(/\s+/g, ' ').trim();
+    if (text) return text.slice(0, 80);
+    const attr = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder');
+    if (attr?.trim()) return attr.trim().slice(0, 80);
+    if (el.tagName === 'INPUT' && el.value) return el.value.trim().slice(0, 80);
+    return (document.title || document.location.hostname).slice(0, 80);
+  };
+
   const selectElement = (e) => {
     e.preventDefault();
     e.stopImmediatePropagation();
 
-    const selector = getSimpleSelector(findInteractive(e.target));
-    chrome.runtime.sendMessage({ type: 'element-selected', selector: selector });
+    const target = findInteractive(e.target);
+    const selector = getSimpleSelector(target);
+    const label = getLabel(target);
+    chrome.runtime.sendMessage({ type: 'element-selected', selector, label });
     cleanup();
   };
 

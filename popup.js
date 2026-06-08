@@ -8,14 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsMenu = document.getElementById('settingsMenu');
   const autoReloadToggle = document.getElementById('autoReloadToggle');
 
-  const defaultSelectors = [
-    { selector: '[data-testid="login-button"]' },
-    { selector: '[data-cy="login-button"]' },
-    { selector: 'login' }
-  ];
-
   function normalizeSelectors(raw) {
-    if (!raw) return defaultSelectors;
+    if (!raw) return [];
     return raw.map(s => typeof s === 'string' ? { selector: s } : s);
   }
 
@@ -102,12 +96,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderList(entries) {
     list.innerHTML = '';
+
+    if (entries.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'empty-state';
+      empty.textContent = 'No selectors yet — type one above or use Find to pick an element.';
+      list.appendChild(empty);
+      return;
+    }
+
     entries.forEach(entry => {
       const li = document.createElement('li');
 
       const text = document.createElement('span');
-      text.className = 'selector-text';
-      text.textContent = entry.selector;
+      const hasLabel = entry.label && entry.label !== entry.selector;
+      // selector-code applies monospace styling when the display text IS the raw CSS selector
+      text.className = hasLabel ? 'selector-text' : 'selector-text selector-code';
+      text.textContent = hasLabel ? entry.label : entry.selector;
+
+      if (hasLabel) {
+        const rawSpan = document.createElement('span');
+        rawSpan.className = 'selector-raw';
+        rawSpan.textContent = entry.selector;
+        text.appendChild(rawSpan);
+      }
+
       li.appendChild(text);
 
       if (entry.url) {
@@ -125,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       list.appendChild(li);
     });
+
     addHoverEffect();
   }
 
